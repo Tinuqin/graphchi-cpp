@@ -47,6 +47,8 @@
 #include <cmath>
 #include <map>
 #include <string>
+#include <iostream>
+#include <fstream>
 
 #include "graphchi_basic_includes.hpp"
 #include "util/labelanalysis.hpp"
@@ -88,6 +90,8 @@ vid_t & my_label(bidirectional_label & bidir, vid_t myid, vid_t nbid) {
  
 typedef vid_t VertexDataType;       // vid_t is the vertex id type
 typedef bidirectional_label EdgeDataType;  // Note, 8-byte edge data
+
+std::ofstream outputfile;
 
 void parse(bidirectional_label &x, const char * s) { } // Do nothing
 
@@ -200,6 +204,12 @@ struct CommunityDetectionProgram : public GraphChiProgram<VertexDataType, EdgeDa
     
 };
 
+class MyCallback : public VCallback<VertexDataType> {
+public: virtual void callback(vid_t vertex_id, VertexDataType &value) {
+	outputfile << vertex_id << " " << value << std::endl;
+}
+};
+
 int main(int argc, const char ** argv) {
     /* GraphChi initialization will read the command line 
      arguments and the configuration file. */
@@ -222,6 +232,14 @@ int main(int argc, const char ** argv) {
         CommunityDetectionProgram program;
         graphchi_engine<VertexDataType, EdgeDataType> engine(filename, nshards, scheduler, m); 
         engine.run(program, niters);
+
+        std::string outputfilename = filename + ".communities";
+        outputfile.open(outputfilename.c_str());
+
+        MyCallback callback;
+        foreach_vertices<VertexDataType>(filename, 0, engine.num_vertices(), callback);
+
+        outputfile.close();
     }
     
     /* Run analysis of the communities (output is written to a file) */
