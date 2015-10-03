@@ -47,6 +47,9 @@
 #include <cmath>
 #include <string>
 
+#include <iostream>
+#include <fstream>
+
 #include "graphchi_basic_includes.hpp"
 #include "util/labelanalysis.hpp"
 
@@ -61,6 +64,8 @@ bool        scheduler = false;
  */
 typedef vid_t VertexDataType;       // vid_t is the vertex id type
 typedef vid_t EdgeDataType;
+
+std::ofstream outputfile;
 
 /**
  * GraphChi programs need to subclass GraphChiProgram<vertex-type, edge-type> 
@@ -151,6 +156,12 @@ struct ConnectedComponentsProgram : public GraphChiProgram<VertexDataType, EdgeD
     
 };
 
+class MyCallback : public VCallback<VertexDataType> {
+public: virtual void callback(vid_t vertex_id, VertexDataType &value) {
+	outputfile << vertex_id << " " << value << std::endl;
+}
+};
+
 int main(int argc, const char ** argv) {
     /* GraphChi initialization will read the command line 
      arguments and the configuration file. */
@@ -173,6 +184,14 @@ int main(int argc, const char ** argv) {
         ConnectedComponentsProgram program;
         graphchi_engine<VertexDataType, EdgeDataType> engine(filename, nshards, scheduler, m); 
         engine.run(program, niters);
+
+        std::string outputfilename = filename + ".concomponents";
+        outputfile.open(outputfilename.c_str());
+
+        MyCallback callback;
+        foreach_vertices<VertexDataType>(filename, 0, engine.num_vertices(), callback);
+
+        outputfile.close();
     }
     
     /* Run analysis of the connected components  (output is written to a file) */
